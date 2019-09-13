@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
+      - uses: actions/checkout@v1
       - name: Semantic Release Action
         env:
           GITHUB_TOKEN: ${{ secrets.gh_token }}
