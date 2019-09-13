@@ -12,4 +12,14 @@ jobs:
         with:
           java-version: 11
       - name: Build with Maven
-        run: mvn package --file pom.xml
+        run: ./mvnw clean package
+      - name: Test with Maven
+        run: ./mvnw verify
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Semantic Release Action
+        env:
+          GITHUB_TOKEN: ${{ secrets.gh_token }}
+        uses: codfish/semantic-release-action@v1
