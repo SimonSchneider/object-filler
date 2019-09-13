@@ -1,0 +1,15 @@
+name: Generic Git workflow
+
+on: [push]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Audit Commit for Secrets
+        uses: eshork/gitleaks-action@master
+      #      - name: Commitlint CLI
+      #        uses: bennypowers/commitlint-gh-actions@v1.0.1
+      - name: Secret Scan
+        uses: max/secret-scan@1.0.0
