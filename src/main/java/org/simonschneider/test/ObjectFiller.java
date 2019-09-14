@@ -1,98 +1,110 @@
 package org.simonschneider.test;
 
+import static java.util.Comparator.comparingInt;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
-import java.util.UUID;
+import java.util.stream.Collectors;
+import org.simonschneider.test.creator.CoreCreators;
 
 public class ObjectFiller {
-  private Random random = new Random();
+  private final Random random = new Random();
+  private final boolean shouldFillFieldsOnNoArgsConstructor;
+  private final boolean shouldFillFieldsOnAnyConstructor;
+  private final ClassFactory classFactory;
+  private final GenericTypeFactory genericTypeFactory;
 
-  @SuppressWarnings("unchecked")
-  public <T> T createAndFill(Class<T> clazz) {
-    return (T) createRandomInstanceOfClass(clazz);
+  public ObjectFiller(
+      boolean shouldFillFieldsOnNoArgsConstructor, boolean shouldFillFieldsOnAnyConstructor) {
+    this.shouldFillFieldsOnNoArgsConstructor = shouldFillFieldsOnNoArgsConstructor;
+    this.shouldFillFieldsOnAnyConstructor = shouldFillFieldsOnAnyConstructor;
+    this.classFactory = CoreCreators.defaultClassFactory();
+    this.genericTypeFactory = CoreCreators.defaultGenericTypeFactory();
+  }
+
+  public <T> T createAndFill(Type type) {
+    return createInstanceOfType(type);
+  }
+
+  private <T> T createInstanceOfClass(Class<T> clazz) {
+    if (clazz.isEnum()) {
+      return createInstanceOfEnum(clazz);
+    } else if (classFactory.canBuild(clazz)) {
+      return classFactory.buildInstance(random, clazz);
+    } else {
+      return Utils.toUnchecked(() -> createAndFillComplexClass(clazz));
+    }
+  }
+
+  private <T> T createInstanceOfEnum(Class<T> clazz) {
+    T[] enumValues = clazz.getEnumConstants();
+    return enumValues[random.nextInt(enumValues.length)];
   }
 
   private <T> T createAndFillComplexClass(Class<T> clazz) {
+    return getSortedAccessibleConstructors(clazz).stream()
+        .map(this::constructClassWith)
+        .flatMap(Optional::stream)
+        .findFirst()
+        .orElseThrow(() -> new UnableToLocateSuitableConstructorException(clazz));
+  }
+
+  @SuppressWarnings("toUnchecked")
+  private <T> List<Constructor<T>> getSortedAccessibleConstructors(Class<T> clazz) {
+    return Arrays.stream(clazz.getDeclaredConstructors())
+        .map(c -> (Constructor<T>) c)
+        .sorted(comparingInt(c -> ((Constructor<T>) c).getParameterCount()).reversed())
+        .filter(Constructor::trySetAccessible)
+        .collect(Collectors.toList());
+  }
+
+  private <T> Optional<T> constructClassWith(Constructor<T> constructor) {
     try {
-      return createAndFillI(clazz);
+      Object[] constructorParameters =
+          Arrays.stream(constructor.getGenericParameterTypes())
+              .map(this::createInstanceOfType)
+              .toArray();
+      T instance = constructor.newInstance(constructorParameters);
+      if (shouldFillFieldsOnNoArgsConstructor && constructor.getParameterCount() == 0) {
+        fillFieldsInInstance(instance);
+      } else if (shouldFillFieldsOnAnyConstructor) {
+        fillFieldsInInstance(instance);
+      }
+      return Optional.of(instance);
     } catch (Exception e) {
-      throw new RuntimeException(e);
+      e.printStackTrace();
+      return Optional.empty();
     }
   }
 
-  @SuppressWarnings("unchecked")
-  private <T> T createAndFillI(Class<T> clazz) throws Exception {
-    Constructor<T> constructor =
-        Arrays.stream(clazz.getConstructors())
-            .map(c -> (Constructor<T>) c)
-            .filter(c -> c.getParameterTypes().length == 0)
-            .findAny()
-            .orElseGet(
-                () ->
-                    Arrays.stream(clazz.getConstructors())
-                        .map(c -> (Constructor<T>) c)
-                        .findAny()
-                        .get());
-    constructor.setAccessible(true);
-    T instance =
-        constructor.newInstance(
-            Arrays.stream(constructor.getParameterTypes())
-                .map(this::createRandomInstanceOfClass)
-                .toArray());
-    for (Field field : clazz.getDeclaredFields()) {
+  private <T> T createInstanceOfType(Type t) {
+    if (t instanceof ParameterizedType) {
+      ParameterizedType pt = (ParameterizedType) t;
+      if (genericTypeFactory.canBuild(pt.getRawType())) {
+        return genericTypeFactory.buildInstance(
+            pt.getRawType(), this::createInstanceOfType, pt.getActualTypeArguments());
+      } else {
+        throw new RuntimeException("unexpected type " + t.toString());
+      }
+    } else if (t instanceof Class) {
+      return createInstanceOfClass((Class<T>) t);
+    } else {
+      throw new RuntimeException("unexpected type " + t.toString());
+    }
+  }
+
+  private <T> T fillFieldsInInstance(T instance) {
+    for (Field field : instance.getClass().getDeclaredFields()) {
       field.setAccessible(true);
-      Object value = getRandomInstanceOfField(field);
-      field.set(instance, value);
+      Object value = createInstanceOfType(field.getGenericType());
+      Utils.toUnchecked(() -> field.set(instance, value));
     }
     return instance;
-  }
-
-  private Object getRandomInstanceOfField(Field field) {
-    if (List.class.isAssignableFrom(field.getType())) {
-      return List.of(createAndFillComplexClass(field.getGenericType().getClass()));
-    } else if (Map.class.isAssignableFrom(field.getType())) {
-      Type[] types =
-          Arrays.stream(field.getGenericType().getClass().getDeclaredFields())
-              .filter(f -> "actualTypeArguments".equals(f.getName()))
-              .peek(f -> f.setAccessible(true))
-              .findAny()
-              .map(f -> Utils.safe(() -> (Type[]) f.get(field.getGenericType())))
-              .get();
-
-      return Map.of(
-          createRandomInstanceOfClass((Class<?>) types[0]),
-          createRandomInstanceOfClass((Class<?>) types[1]));
-    } else {
-      return createRandomInstanceOfClass(field.getType());
-    }
-  }
-
-  private Object createRandomInstanceOfClass(Class<?> clazz) {
-    if (clazz.isEnum()) {
-      Object[] enumValues = clazz.getEnumConstants();
-      return enumValues[random.nextInt(enumValues.length)];
-    } else if (clazz.equals(Integer.TYPE) || clazz.equals(Integer.class)) {
-      return random.nextInt();
-    } else if (clazz.equals(Long.TYPE) || clazz.equals(Long.class)) {
-      return random.nextLong();
-    } else if (clazz.equals(Double.TYPE) || clazz.equals(Double.class)) {
-      return random.nextDouble();
-    } else if (clazz.equals(Float.TYPE) || clazz.equals(Float.class)) {
-      return random.nextFloat();
-    } else if (clazz.equals(Boolean.TYPE) || clazz.equals(Boolean.class)) {
-      return random.nextBoolean();
-    } else if (clazz.equals(String.class)) {
-      return UUID.randomUUID().toString();
-    } else if (clazz.equals(Instant.class)) {
-      return Instant.now();
-    } else {
-      return createAndFillComplexClass(clazz);
-    }
   }
 }
