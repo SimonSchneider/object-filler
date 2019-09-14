@@ -1,4 +1,4 @@
-package org.simonschneider.test.creator;
+package org.simonschneider.test.core;
 
 public class InstanceIsNotKeyTypeException extends RuntimeException {
 

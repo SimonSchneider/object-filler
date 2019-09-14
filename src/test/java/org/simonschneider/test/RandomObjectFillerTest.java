@@ -9,18 +9,19 @@ import static org.hamcrest.Matchers.nullValue;
 
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.simonschneider.test.core.RandomObjectFiller;
 
-class ObjectFillerTest {
+class RandomObjectFillerTest {
 
   @Test
   void shouldFillSimpleString() {
-    String filledString = new ObjectFiller(false, false).createAndFill(String.class);
+    String filledString = RandomObjectFiller.simple().createAndFill(String.class);
     assertThat(filledString, notNullValue());
   }
 
   @Test
   void shouldFillClassContainingMap() {
-    ClassWithMap classWithMap = new ObjectFiller(false, false).createAndFill(ClassWithMap.class);
+    ClassWithMap classWithMap = RandomObjectFiller.simple().createAndFill(ClassWithMap.class);
 
     assertThat(classWithMap, notNullValue());
     assertThat(classWithMap.map, notNullValue());
@@ -31,7 +32,7 @@ class ObjectFillerTest {
   @Test
   void shouldNotFillIfOnlyNoArgsConstructorAndNotFillingFields() {
     NoArgsConstructorClass noArgsConstructorClass =
-        new ObjectFiller(false, false).createAndFill(NoArgsConstructorClass.class);
+        RandomObjectFiller.simple().createAndFill(NoArgsConstructorClass.class);
 
     assertThat(noArgsConstructorClass, notNullValue());
     assertThat(noArgsConstructorClass.test, nullValue());
@@ -40,7 +41,10 @@ class ObjectFillerTest {
   @Test
   void shouldFillIfOnlyNoArgsConstructorAndFillingFields() {
     NoArgsConstructorClass noArgsConstructorClass =
-        new ObjectFiller(true, false).createAndFill(NoArgsConstructorClass.class);
+        RandomObjectFiller.builder()
+            .with((c, i) -> c.getParameterCount() == 0)
+            .build()
+            .createAndFill(NoArgsConstructorClass.class);
 
     assertThat(noArgsConstructorClass, notNullValue());
     assertThat(noArgsConstructorClass.test, notNullValue());
@@ -49,7 +53,7 @@ class ObjectFillerTest {
   @Test
   void shouldFillIfOnlySomeArgsConstructorIfNotFillingFields() {
     ClassWithSomeArgsConstructor classWithSomeArgsConstructor =
-        new ObjectFiller(false, false).createAndFill(ClassWithSomeArgsConstructor.class);
+        RandomObjectFiller.simple().createAndFill(ClassWithSomeArgsConstructor.class);
 
     assertThat(classWithSomeArgsConstructor, notNullValue());
     assertThat(classWithSomeArgsConstructor.constructorField, notNullValue());
@@ -59,7 +63,7 @@ class ObjectFillerTest {
   @Test
   void shouldFillIfOnlySomeArgsConstructorIfFillingOnNoArgsConstructorFields() {
     ClassWithSomeArgsConstructor classWithSomeArgsConstructor =
-        new ObjectFiller(true, false).createAndFill(ClassWithSomeArgsConstructor.class);
+        RandomObjectFiller.simple().createAndFill(ClassWithSomeArgsConstructor.class);
 
     assertThat(classWithSomeArgsConstructor, notNullValue());
     assertThat(classWithSomeArgsConstructor.constructorField, notNullValue());
@@ -69,7 +73,10 @@ class ObjectFillerTest {
   @Test
   void shouldFillIfOnlySomeArgsConstructorIfFillingOnAnyArgsConstructorFields() {
     ClassWithSomeArgsConstructor classWithSomeArgsConstructor =
-        new ObjectFiller(true, true).createAndFill(ClassWithSomeArgsConstructor.class);
+        RandomObjectFiller.builder()
+            .with((c, i) -> true)
+            .build()
+            .createAndFill(ClassWithSomeArgsConstructor.class);
 
     assertThat(classWithSomeArgsConstructor, notNullValue());
     assertThat(classWithSomeArgsConstructor.constructorField, notNullValue());

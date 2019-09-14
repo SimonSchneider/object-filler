@@ -1,4 +1,4 @@
-package org.simonschneider.test;
+package org.simonschneider.test.core;
 
 public class UnableToLocateSuitableConstructorException extends RuntimeException {
 
