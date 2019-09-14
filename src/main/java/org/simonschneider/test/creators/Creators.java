@@ -1,4 +1,4 @@
-package org.simonschneider.test.creator;
+package org.simonschneider.test.creators;
 
 import java.lang.reflect.Type;
 import java.time.Instant;
@@ -13,11 +13,11 @@ import java.util.UUID;
 import java.util.function.Function;
 import org.simonschneider.test.ClassFactory;
 import org.simonschneider.test.GenericTypeFactory;
-import org.simonschneider.test.MapBackedClassFactory;
-import org.simonschneider.test.MapBackedGenericTypeFactory;
-import org.simonschneider.test.MapBackedGenericTypeFactory.GenericTypeCreator;
+import org.simonschneider.test.GenericTypeFactory.GenericTypeCreator;
+import org.simonschneider.test.core.MapBackedClassFactory;
+import org.simonschneider.test.core.MapBackedGenericTypeFactory;
 
-public class CoreCreators {
+public class Creators {
   public static Map<Class, Function<Random, Object>> getPrimitiveCreators() {
     return Map.of(
         Integer.TYPE, Random::nextInt,
@@ -49,11 +49,11 @@ public class CoreCreators {
   public static Map<Type, GenericTypeCreator> collectionCreators() {
     return Map.of(
         Map.class,
-        (b, t) -> Map.of(b.apply(t[0]), b.apply(t[1])),
+        (f, t) -> Map.of(f.createAndFill(t[0]), f.createAndFill(t[1])),
         List.class,
-        (b, t) -> List.of(b.apply(t[0])),
+        (f, t) -> List.of(f.createAndFill(t[0])),
         Set.class,
-        (b, t) -> Set.of(b.apply(t[0])));
+        (f, t) -> Set.of(f.createAndFill(t[0])));
   }
 
   public static ClassFactory defaultClassFactory() {

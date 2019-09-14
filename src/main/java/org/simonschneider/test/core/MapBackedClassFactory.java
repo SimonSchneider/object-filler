@@ -1,11 +1,10 @@
-package org.simonschneider.test;
+package org.simonschneider.test.core;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.function.Function;
-import java.util.function.Supplier;
-import org.simonschneider.test.creator.InstanceIsNotKeyTypeException;
+import org.simonschneider.test.ClassFactory;
 
 public class MapBackedClassFactory implements ClassFactory {
   private final HashMap<Class, Function<Random, Object>> classCreators = new HashMap<>();
@@ -27,6 +26,7 @@ public class MapBackedClassFactory implements ClassFactory {
     return (T) classCreators.get(clazz).apply(random);
   }
 
+  @Override
   public void put(Class clazz, Function<Random, Object> creator) {
     Object instance = creator.apply(new Random());
     if (getComparable(clazz).isInstance(instance)) {
@@ -34,18 +34,6 @@ public class MapBackedClassFactory implements ClassFactory {
     } else {
       throw new InstanceIsNotKeyTypeException(clazz, instance);
     }
-  }
-
-  public void putSimple(Class clazz, Supplier<Object> creator) {
-    put(clazz, r -> creator.get());
-  }
-
-  public void putAll(Map<? extends Class, ? extends Function<Random, Object>> other) {
-    other.forEach(this::put);
-  }
-
-  public void putAllSimple(Map<? extends Class, ? extends Supplier<Object>> other) {
-    other.forEach(this::putSimple);
   }
 
   private static Class<?> getComparable(Class<?> expectedClass) {

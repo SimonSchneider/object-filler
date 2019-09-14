@@ -6,14 +6,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.Random;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
-import org.simonschneider.test.creator.CoreCreators;
-import org.simonschneider.test.creator.InstanceIsNotKeyTypeException;
+import org.simonschneider.test.core.InstanceIsNotKeyTypeException;
+import org.simonschneider.test.core.MapBackedClassFactory;
+import org.simonschneider.test.creators.Creators;
 
 class ClassFactoryTest {
 
   @Test
   void shouldBePossibleToPutAllPrimitiveTypesInFactoryAndCreateTypes() {
-    ClassFactory classFactory = new MapBackedClassFactory(CoreCreators.getPrimitiveCreators());
+    ClassFactory classFactory = new MapBackedClassFactory(Creators.getPrimitiveCreators());
 
     Object generatedPrimitiveType = classFactory.buildInstance(new Random(), Integer.TYPE);
     Object generatedBoxedType = classFactory.buildInstance(new Random(), Integer.class);
