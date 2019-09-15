@@ -3,13 +3,11 @@ package org.simonschneider.test.core;
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 import org.simonschneider.test.GenericTypeFactory;
-import org.simonschneider.test.ObjectFiller;
 
 public class MapBackedGenericTypeFactory implements GenericTypeFactory {
   private final Map<Type, GenericTypeCreator> typeCreators = new HashMap<>();
-
-  public MapBackedGenericTypeFactory() {}
 
   public MapBackedGenericTypeFactory(Map<Type, GenericTypeCreator> initial) {
     this.putAll(initial);
@@ -21,8 +19,8 @@ public class MapBackedGenericTypeFactory implements GenericTypeFactory {
   }
 
   @Override
-  public <T> T buildInstance(Type type, ObjectFiller objectFiller, Type[] genericTypes) {
-    return (T) typeCreators.get(type).apply(objectFiller, genericTypes);
+  public <T> T buildInstance(Type type, Function<Type, ?> typeBuilder, Type[] genericTypes) {
+    return (T) typeCreators.get(type).apply(typeBuilder, genericTypes);
   }
 
   public void put(Type type, GenericTypeCreator creator) {

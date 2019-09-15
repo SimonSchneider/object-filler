@@ -8,15 +8,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.simonschneider.test.FieldFilling;
 import org.simonschneider.test.ObjectFiller;
 
 public class ConstructorInstantiator {
-  private final FieldFilling fieldFilling;
-
-  public ConstructorInstantiator(FieldFilling fieldFilling) {
-    this.fieldFilling = fieldFilling;
-  }
 
   public <T> T createAndFill(ObjectFiller objectFiller, Class<T> clazz) {
     return getSortedAccessibleConstructors(clazz).stream()
@@ -43,9 +37,7 @@ public class ConstructorInstantiator {
               .map(objectFiller::createAndFill)
               .toArray();
       T instance = constructor.newInstance(constructorParameters);
-      if (fieldFilling.shouldFillFields(constructor, instance)) {
-        fillFields(objectFiller, instance);
-      }
+      fillFields(objectFiller, instance);
       return Optional.of(instance);
     } catch (Exception e) {
       e.printStackTrace();

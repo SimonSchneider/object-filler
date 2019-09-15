@@ -17,12 +17,15 @@ public class MapBackedClassFactory implements ClassFactory {
 
   @Override
   public <T> boolean canBuild(Class<T> clazz) {
-    return classCreators.containsKey(clazz);
+    return clazz.isEnum() || classCreators.containsKey(clazz);
   }
 
   @Override
   @SuppressWarnings("toUnchecked")
   public <T> T buildInstance(Random random, Class<T> clazz) {
+    if (clazz.isEnum()) {
+      return buildEnum(random, clazz);
+    }
     return (T) classCreators.get(clazz).apply(random);
   }
 
@@ -34,6 +37,11 @@ public class MapBackedClassFactory implements ClassFactory {
     } else {
       throw new InstanceIsNotKeyTypeException(clazz, instance);
     }
+  }
+
+  private <T> T buildEnum(Random random, Class<T> clazz) {
+    T[] enumValues = clazz.getEnumConstants();
+    return enumValues[random.nextInt(enumValues.length)];
   }
 
   private static Class<?> getComparable(Class<?> expectedClass) {

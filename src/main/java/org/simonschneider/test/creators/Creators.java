@@ -49,11 +49,11 @@ public class Creators {
   public static Map<Type, GenericTypeCreator> collectionCreators() {
     return Map.of(
         Map.class,
-        (f, t) -> Map.of(f.createAndFill(t[0]), f.createAndFill(t[1])),
+        (f, t) -> Map.of(f.apply(t[0]), f.apply(t[1])),
         List.class,
-        (f, t) -> List.of(f.createAndFill(t[0])),
+        (f, t) -> List.of(f.apply(t[0])),
         Set.class,
-        (f, t) -> Set.of(f.createAndFill(t[0])));
+        (f, t) -> Set.of(f.apply(t[0])));
   }
 
   public static ClassFactory defaultClassFactory() {
