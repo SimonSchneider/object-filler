@@ -24,3 +24,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.gh_token }}
         uses: codfish/semantic-release-action@v1
+      - name: Release with Maven
+        if: steps.semantic.outputs.new-release-published == 'true'
+        run: ./mvnw -Drevision=$RELEASE_VERSION clean deploy
