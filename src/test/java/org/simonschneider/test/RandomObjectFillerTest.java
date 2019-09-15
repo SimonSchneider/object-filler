@@ -5,23 +5,37 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isA;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.simonschneider.test.core.RandomObjectFiller;
+import org.simonschneider.test.graph.CyclicDependencyException;
+import org.simonschneider.test.graph.GraphObjectFiller;
 
 class RandomObjectFillerTest {
 
-  @Test
-  void shouldFillSimpleString() {
-    String filledString = RandomObjectFiller.simple().createAndFill(String.class);
+  static Stream<Arguments> fillers() {
+    return Stream.of(
+        Arguments.of(RandomObjectFiller.builder().build()),
+        Arguments.of(GraphObjectFiller.simple()));
+  }
+
+  @MethodSource("fillers")
+  @ParameterizedTest
+  void shouldFillSimpleString(ObjectFiller objectFiller) {
+    String filledString = objectFiller.createAndFill(String.class);
     assertThat(filledString, notNullValue());
   }
 
-  @Test
-  void shouldFillClassContainingMap() {
-    ClassWithMap classWithMap = RandomObjectFiller.simple().createAndFill(ClassWithMap.class);
+  @MethodSource("fillers")
+  @ParameterizedTest
+  void shouldFillClassContainingMap(ObjectFiller objectFiller) {
+    ClassWithMap classWithMap = objectFiller.createAndFill(ClassWithMap.class);
 
     assertThat(classWithMap, notNullValue());
     assertThat(classWithMap.map, notNullValue());
@@ -29,61 +43,63 @@ class RandomObjectFillerTest {
     assertThat(classWithMap.map, hasEntry(isA(String.class), isA(SimpleType.class)));
   }
 
-  @Test
-  void shouldNotFillIfOnlyNoArgsConstructorAndNotFillingFields() {
+  @MethodSource("fillers")
+  @ParameterizedTest
+  void shouldFillIfOnlyNoArgsConstructorAndFillingFields(ObjectFiller objectFiller) {
     NoArgsConstructorClass noArgsConstructorClass =
-        RandomObjectFiller.simple().createAndFill(NoArgsConstructorClass.class);
-
-    assertThat(noArgsConstructorClass, notNullValue());
-    assertThat(noArgsConstructorClass.test, nullValue());
-  }
-
-  @Test
-  void shouldFillIfOnlyNoArgsConstructorAndFillingFields() {
-    NoArgsConstructorClass noArgsConstructorClass =
-        RandomObjectFiller.builder()
-            .with((c, i) -> c.getParameterCount() == 0)
-            .build()
-            .createAndFill(NoArgsConstructorClass.class);
+        objectFiller.createAndFill(NoArgsConstructorClass.class);
 
     assertThat(noArgsConstructorClass, notNullValue());
     assertThat(noArgsConstructorClass.test, notNullValue());
   }
 
-  @Test
-  void shouldFillIfOnlySomeArgsConstructorIfNotFillingFields() {
+  @MethodSource("fillers")
+  @ParameterizedTest
+  void shouldFillIfOnlySomeArgsConstructorIfFillingOnAnyArgsConstructorFields(
+      ObjectFiller objectFiller) {
     ClassWithSomeArgsConstructor classWithSomeArgsConstructor =
-        RandomObjectFiller.simple().createAndFill(ClassWithSomeArgsConstructor.class);
-
-    assertThat(classWithSomeArgsConstructor, notNullValue());
-    assertThat(classWithSomeArgsConstructor.constructorField, notNullValue());
-    assertThat(classWithSomeArgsConstructor.nonConstructorField, nullValue());
-  }
-
-  @Test
-  void shouldFillIfOnlySomeArgsConstructorIfFillingOnNoArgsConstructorFields() {
-    ClassWithSomeArgsConstructor classWithSomeArgsConstructor =
-        RandomObjectFiller.simple().createAndFill(ClassWithSomeArgsConstructor.class);
-
-    assertThat(classWithSomeArgsConstructor, notNullValue());
-    assertThat(classWithSomeArgsConstructor.constructorField, notNullValue());
-    assertThat(classWithSomeArgsConstructor.nonConstructorField, nullValue());
-  }
-
-  @Test
-  void shouldFillIfOnlySomeArgsConstructorIfFillingOnAnyArgsConstructorFields() {
-    ClassWithSomeArgsConstructor classWithSomeArgsConstructor =
-        RandomObjectFiller.builder()
-            .with((c, i) -> true)
-            .build()
-            .createAndFill(ClassWithSomeArgsConstructor.class);
+        objectFiller.createAndFill(ClassWithSomeArgsConstructor.class);
 
     assertThat(classWithSomeArgsConstructor, notNullValue());
     assertThat(classWithSomeArgsConstructor.constructorField, notNullValue());
     assertThat(classWithSomeArgsConstructor.nonConstructorField, notNullValue());
   }
 
-  public static class ClassWithMap {
+  @Test
+  void shouldComplainWhenTryingToCreateObjectWithCyclicDependency() {
+    ObjectFiller objectFiller = GraphObjectFiller.simple();
+    assertThrows(CyclicDependencyException.class, () -> objectFiller.createAndFill(CyclicA.class));
+  }
+
+  @Test
+  void shouldComplainWhenTryingToCreateObjectWithLargeCyclicDependency() {
+    ObjectFiller objectFiller = GraphObjectFiller.simple();
+    assertThrows(
+        CyclicDependencyException.class, () -> objectFiller.createAndFill(CyclicLargeA.class));
+  }
+
+  static class CyclicA {
+    private CyclicB cyclicB;
+  }
+
+  static class CyclicB {
+    private CyclicA cyclicA;
+    private String string;
+  }
+
+  static class CyclicLargeA {
+    private Map<String, CyclicLargeB> map;
+  }
+
+  static class CyclicLargeB {
+    private CyclicLargeC c;
+  }
+
+  static class CyclicLargeC {
+    private Map<CyclicLargeA, String> map;
+  }
+
+  static class ClassWithMap {
     private final Map<String, SimpleType> map;
 
     public ClassWithMap(Map<String, SimpleType> map) {
@@ -91,7 +107,7 @@ class RandomObjectFillerTest {
     }
   }
 
-  public static class SimpleType {
+  static class SimpleType {
     private final String string;
 
     public SimpleType(String string) {
@@ -99,13 +115,13 @@ class RandomObjectFillerTest {
     }
   }
 
-  public static class NoArgsConstructorClass {
+  static class NoArgsConstructorClass {
     private String test;
   }
 
-  public static class ClassWithSomeArgsConstructor {
+  static class ClassWithSomeArgsConstructor {
     private String nonConstructorField;
-    private String constructorField;
+    private final String constructorField;
 
     public ClassWithSomeArgsConstructor(String constructorField) {
       this.constructorField = constructorField;

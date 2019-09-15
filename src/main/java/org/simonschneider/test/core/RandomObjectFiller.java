@@ -4,26 +4,23 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Random;
 import org.simonschneider.test.ClassFactory;
-import org.simonschneider.test.FieldFilling;
 import org.simonschneider.test.GenericTypeFactory;
 import org.simonschneider.test.ObjectFiller;
 import org.simonschneider.test.creators.Creators;
 
-public class RandomObjectFiller implements ObjectFiller {
+public class RandomObjectFiller<T> implements ObjectFiller {
   private final Random random = new Random();
   private final ClassFactory classFactory;
   private final GenericTypeFactory genericTypeFactory;
   private final ConstructorInstantiator constructorInstantiator;
 
-  public RandomObjectFiller(
-      ClassFactory classFactory,
-      GenericTypeFactory genericTypeFactory,
-      ConstructorInstantiator constructorInstantiator) {
+  public RandomObjectFiller(ClassFactory classFactory, GenericTypeFactory genericTypeFactory) {
     this.classFactory = classFactory;
     this.genericTypeFactory = genericTypeFactory;
-    this.constructorInstantiator = constructorInstantiator;
+    this.constructorInstantiator = new ConstructorInstantiator();
   }
 
+  @Override
   public <T> T createAndFill(Type type) {
     return createInstanceOfType(type);
   }
@@ -41,16 +38,14 @@ public class RandomObjectFiller implements ObjectFiller {
 
   private <T> T createInstanceOfParameterizedType(ParameterizedType type) {
     if (genericTypeFactory.canBuild(type)) {
-      return genericTypeFactory.buildInstance(type, this);
+      return genericTypeFactory.buildInstance(type, this::createAndFill);
     } else {
       throw new RuntimeException("unexpected generic type " + type.toString());
     }
   }
 
   private <T> T createInstanceOfClass(Class<T> clazz) {
-    if (clazz.isEnum()) {
-      return createInstanceOfEnum(clazz);
-    } else if (classFactory.canBuild(clazz)) {
+    if (classFactory.canBuild(clazz)) {
       return classFactory.buildInstance(random, clazz);
     } else {
       return Utils.toUnchecked(() -> constructorInstantiator.createAndFill(this, clazz));
@@ -73,7 +68,6 @@ public class RandomObjectFiller implements ObjectFiller {
   public static class Builder {
     private ClassFactory classFactory = Creators.defaultClassFactory();
     private GenericTypeFactory genericTypeFactory = Creators.defaultGenericTypeFactory();
-    private FieldFilling fieldFilling = (c, i) -> false;
 
     public Builder with(ClassFactory classFactory) {
       this.classFactory = classFactory;
@@ -85,14 +79,8 @@ public class RandomObjectFiller implements ObjectFiller {
       return this;
     }
 
-    public Builder with(FieldFilling fieldFilling) {
-      this.fieldFilling = fieldFilling;
-      return this;
-    }
-
     public RandomObjectFiller build() {
-      ConstructorInstantiator constructorInstantiator = new ConstructorInstantiator(fieldFilling);
-      return new RandomObjectFiller(classFactory, genericTypeFactory, constructorInstantiator);
+      return new RandomObjectFiller(classFactory, genericTypeFactory);
     }
   }
 }

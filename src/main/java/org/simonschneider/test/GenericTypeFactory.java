@@ -3,6 +3,7 @@ package org.simonschneider.test;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public interface GenericTypeFactory {
@@ -13,11 +14,11 @@ public interface GenericTypeFactory {
 
   boolean canBuild(Type type);
 
-  default <T> T buildInstance(ParameterizedType type, ObjectFiller objectFiller) {
-    return buildInstance(type.getRawType(), objectFiller, type.getActualTypeArguments());
+  default <T> T buildInstance(ParameterizedType type, Function<Type, ?> typeBuilder) {
+    return buildInstance(type.getRawType(), typeBuilder, type.getActualTypeArguments());
   }
 
-  <T> T buildInstance(Type type, ObjectFiller objectFiller, Type[] genericTypes);
+  <T> T buildInstance(Type type, Function<Type, ?> typeBuilder, Type[] genericTypes);
 
   void put(Type type, GenericTypeCreator creator);
 
@@ -35,6 +36,6 @@ public interface GenericTypeFactory {
 
   @FunctionalInterface
   interface GenericTypeCreator {
-    Object apply(ObjectFiller objectFiller, Type[] genericTypes);
+    Object apply(Function<Type, ?> typeBuilder, Type[] genericTypes);
   }
 }
