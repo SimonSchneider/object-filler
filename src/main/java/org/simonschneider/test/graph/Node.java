@@ -7,4 +7,6 @@ interface Node<T> {
   Type getType();
 
   T create();
+
+  Node<T> copy();
 }

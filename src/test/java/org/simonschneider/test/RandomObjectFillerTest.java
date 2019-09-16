@@ -2,10 +2,11 @@ package org.simonschneider.test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isA;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.hamcrest.Matchers.nullValue;
 
 import java.util.Map;
 import java.util.stream.Stream;
@@ -14,7 +15,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.simonschneider.test.core.RandomObjectFiller;
-import org.simonschneider.test.graph.CyclicDependencyException;
 import org.simonschneider.test.graph.GraphObjectFiller;
 
 class RandomObjectFillerTest {
@@ -68,14 +68,20 @@ class RandomObjectFillerTest {
   @Test
   void shouldComplainWhenTryingToCreateObjectWithCyclicDependency() {
     ObjectFiller objectFiller = GraphObjectFiller.simple();
-    assertThrows(CyclicDependencyException.class, () -> objectFiller.createAndFill(CyclicA.class));
+    CyclicA cyclicA = objectFiller.createAndFill(CyclicA.class);
+    assertThat(cyclicA, notNullValue());
+    assertThat(cyclicA.cyclicB, notNullValue());
+    assertThat(cyclicA.cyclicB.cyclicA, notNullValue());
+    assertThat(cyclicA.cyclicB.cyclicA.cyclicB, notNullValue());
+    assertThat(cyclicA.cyclicB.cyclicA.cyclicB.cyclicA, nullValue());
   }
 
   @Test
   void shouldComplainWhenTryingToCreateObjectWithLargeCyclicDependency() {
     ObjectFiller objectFiller = GraphObjectFiller.simple();
-    assertThrows(
-        CyclicDependencyException.class, () -> objectFiller.createAndFill(CyclicLargeA.class));
+    CyclicLargeA cyclicLargeA = objectFiller.createAndFill(CyclicLargeA.class);
+    assertThat(cyclicLargeA, notNullValue());
+    assertThat(cyclicLargeA.map.keySet(), hasSize(1));
   }
 
   static class CyclicA {

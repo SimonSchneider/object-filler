@@ -46,6 +46,11 @@ public class ClassNode<T> implements NodeWithChildren<T> {
   }
 
   @Override
+  public Node<T> copy() {
+    return new ClassNode<>(clazz);
+  }
+
+  @Override
   public void addChildNode(Node<?> child) {
     Arrays.stream(clazz.getDeclaredFields())
         .filter(f -> f.getGenericType().equals(child.getType()))

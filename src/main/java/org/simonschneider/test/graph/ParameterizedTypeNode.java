@@ -37,6 +37,11 @@ public class ParameterizedTypeNode<T> implements NodeWithChildren<T> {
   }
 
   @Override
+  public Node<T> copy() {
+    return new ParameterizedTypeNode<>(type, builder);
+  }
+
+  @Override
   public Set<Type> getChildTypes() {
     return childTypes;
   }

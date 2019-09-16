@@ -21,4 +21,9 @@ public class LeafNode<T> implements Node<T> {
   public T create() {
     return supplier.get();
   }
+
+  @Override
+  public Node<T> copy() {
+    return new LeafNode<>(type, supplier);
+  }
 }

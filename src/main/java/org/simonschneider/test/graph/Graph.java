@@ -13,17 +13,24 @@ import org.simonschneider.test.GenericTypeFactory;
 class Graph {
 
   private final Map<Type, Node<?>> graph = new HashMap<>();
-  private final Type type;
   private final Random random;
   private final ClassFactory classFactory;
   private final GenericTypeFactory genericTypeFactory;
+  private final Map<Type, ?> emptyTypes;
+  private final Type type;
+  private Node<?> rootNode;
 
   Graph(
-      Random random, ClassFactory classFactory, GenericTypeFactory genericTypeFactory, Type type) {
-    this.type = type;
+      Random random,
+      ClassFactory classFactory,
+      GenericTypeFactory genericTypeFactory,
+      Map<Type, ?> emptyTypes,
+      Type type) {
     this.random = random;
     this.classFactory = classFactory;
     this.genericTypeFactory = genericTypeFactory;
+    this.emptyTypes = emptyTypes;
+    this.type = type;
   }
 
   void prepare() {
@@ -31,12 +38,12 @@ class Graph {
   }
 
   void validate() {
-    new GraphValidator(graph, type).validate();
+    rootNode = new GraphCleaner<>(graph.get(type), emptyTypes).clean();
   }
 
   @SuppressWarnings("unchecked")
   <T> T build() {
-    return (T) graph.get(type).create();
+    return (T) rootNode.create();
   }
 
   @SuppressWarnings("unchecked")
