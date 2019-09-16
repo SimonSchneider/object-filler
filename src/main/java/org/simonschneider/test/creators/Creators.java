@@ -1,5 +1,9 @@
 package org.simonschneider.test.creators;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
+
 import java.lang.reflect.Type;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -7,14 +11,19 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.function.Function;
 import org.simonschneider.test.ClassFactory;
+import org.simonschneider.test.EmptyInstanceFactory;
 import org.simonschneider.test.GenericTypeFactory;
 import org.simonschneider.test.GenericTypeFactory.GenericTypeCreator;
 import org.simonschneider.test.core.MapBackedClassFactory;
+import org.simonschneider.test.core.MapBackedEmptyInstanceFactory;
 import org.simonschneider.test.core.MapBackedGenericTypeFactory;
 
 public class Creators {
@@ -53,7 +62,23 @@ public class Creators {
         List.class,
         (f, t) -> List.of(f.apply(t[0])),
         Set.class,
-        (f, t) -> Set.of(f.apply(t[0])));
+        (f, t) -> Set.of(f.apply(t[0])),
+        Optional.class,
+        (f, t) -> Optional.of(f.apply(t[0])),
+        Future.class,
+        (f, t) -> CompletableFuture.completedFuture(f.apply(t[0])));
+  }
+
+  public static Map<Type, Object> emptyInstances() {
+    return Map.of(
+        Map.class,
+        emptyMap(),
+        List.class,
+        emptyList(),
+        Set.class,
+        emptySet(),
+        Optional.class,
+        Optional.empty());
   }
 
   public static ClassFactory defaultClassFactory() {
@@ -65,8 +90,12 @@ public class Creators {
   }
 
   public static GenericTypeFactory defaultGenericTypeFactory() {
-    Map<Type, GenericTypeCreator> initialCreators = new HashMap<>();
-    initialCreators.putAll(collectionCreators());
+    Map<Type, GenericTypeCreator> initialCreators = new HashMap<>(collectionCreators());
     return new MapBackedGenericTypeFactory(initialCreators);
+  }
+
+  public static EmptyInstanceFactory defaultEmptyInstanceFactory() {
+    Map<Type, Object> initial = new HashMap<>(emptyInstances());
+    return new MapBackedEmptyInstanceFactory(initial);
   }
 }

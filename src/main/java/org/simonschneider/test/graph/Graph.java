@@ -8,6 +8,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.simonschneider.test.ClassFactory;
+import org.simonschneider.test.EmptyInstanceFactory;
 import org.simonschneider.test.GenericTypeFactory;
 
 class Graph {
@@ -16,7 +17,7 @@ class Graph {
   private final Random random;
   private final ClassFactory classFactory;
   private final GenericTypeFactory genericTypeFactory;
-  private final Map<Type, ?> emptyTypes;
+  private final EmptyInstanceFactory emptyInstanceFactory;
   private final Type type;
   private Node<?> rootNode;
 
@@ -24,12 +25,12 @@ class Graph {
       Random random,
       ClassFactory classFactory,
       GenericTypeFactory genericTypeFactory,
-      Map<Type, ?> emptyTypes,
+      EmptyInstanceFactory emptyInstanceFactory,
       Type type) {
     this.random = random;
     this.classFactory = classFactory;
     this.genericTypeFactory = genericTypeFactory;
-    this.emptyTypes = emptyTypes;
+    this.emptyInstanceFactory = emptyInstanceFactory;
     this.type = type;
   }
 
@@ -38,7 +39,7 @@ class Graph {
   }
 
   void validate() {
-    rootNode = new GraphCleaner<>(graph.get(type), emptyTypes).clean();
+    rootNode = new GraphCleaner<>(graph.get(type), emptyInstanceFactory).clean();
   }
 
   @SuppressWarnings("unchecked")
