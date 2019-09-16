@@ -1,11 +1,9 @@
 package org.simonschneider.test.graph;
 
-import static java.util.Collections.emptyMap;
-
 import java.lang.reflect.Type;
-import java.util.Map;
 import java.util.Random;
 import org.simonschneider.test.ClassFactory;
+import org.simonschneider.test.EmptyInstanceFactory;
 import org.simonschneider.test.GenericTypeFactory;
 import org.simonschneider.test.ObjectFiller;
 import org.simonschneider.test.creators.Creators;
@@ -15,18 +13,20 @@ public class GraphObjectFiller implements ObjectFiller {
   private final Random random = new Random();
   private final ClassFactory classFactory;
   private final GenericTypeFactory genericTypeFactory;
-  private final Map<Type, ?> emptyTypes;
+  private final EmptyInstanceFactory emptyInstanceFactory;
 
   public GraphObjectFiller(
-      ClassFactory classFactory, GenericTypeFactory genericTypeFactory, Map<Type, ?> emptyTypes) {
+      ClassFactory classFactory,
+      GenericTypeFactory genericTypeFactory,
+      EmptyInstanceFactory emptyInstanceFactory) {
     this.classFactory = classFactory;
     this.genericTypeFactory = genericTypeFactory;
-    this.emptyTypes = emptyTypes;
+    this.emptyInstanceFactory = emptyInstanceFactory;
   }
 
   @Override
   public <T> T createAndFill(Type type) {
-    Graph graph = new Graph(random, classFactory, genericTypeFactory, emptyTypes, type);
+    Graph graph = new Graph(random, classFactory, genericTypeFactory, emptyInstanceFactory, type);
     graph.prepare();
     graph.validate();
     return graph.build();
@@ -43,7 +43,7 @@ public class GraphObjectFiller implements ObjectFiller {
   public static class Builder {
     private ClassFactory classFactory = Creators.defaultClassFactory();
     private GenericTypeFactory genericTypeFactory = Creators.defaultGenericTypeFactory();
-    private Map<Type, ?> emptyTypes = Map.of(Map.class, emptyMap());
+    private EmptyInstanceFactory emptyInstanceFactory = Creators.defaultEmptyInstanceFactory();
 
     public Builder with(ClassFactory classFactory) {
       this.classFactory = classFactory;
@@ -55,8 +55,13 @@ public class GraphObjectFiller implements ObjectFiller {
       return this;
     }
 
+    public Builder with(EmptyInstanceFactory emptyInstanceFactory) {
+      this.emptyInstanceFactory = emptyInstanceFactory;
+      return this;
+    }
+
     public GraphObjectFiller build() {
-      return new GraphObjectFiller(classFactory, genericTypeFactory, emptyTypes);
+      return new GraphObjectFiller(classFactory, genericTypeFactory, emptyInstanceFactory);
     }
   }
 }

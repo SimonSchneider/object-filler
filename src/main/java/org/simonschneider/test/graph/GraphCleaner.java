@@ -1,20 +1,19 @@
 package org.simonschneider.test.graph;
 
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
+import org.simonschneider.test.EmptyInstanceFactory;
 
 class GraphCleaner<R> {
 
   private final Node<R> rootNode;
-  private final Map<Type, ?> emptyMap;
+  private final EmptyInstanceFactory emptyInstanceFactory;
 
-  GraphCleaner(Node<R> rootNode, Map<Type, ?> emptyMap) {
+  GraphCleaner(Node<R> rootNode, EmptyInstanceFactory emptyInstanceFactory) {
     this.rootNode = rootNode;
-    this.emptyMap = emptyMap;
+    this.emptyInstanceFactory = emptyInstanceFactory;
   }
 
   Node<R> clean() {
@@ -54,11 +53,11 @@ class GraphCleaner<R> {
     }
   }
 
-  @SuppressWarnings("unchecked")
   private <T> Node<T> visitNodeWithChildrenAndFixCycle(
       Set<Type> visitedTypes, NodeWithChildren<T> node) {
-    if (emptyMap.containsKey(getType(node.getType()))) {
-      return new LeafNode<>(node.getType(), () -> (T) emptyMap.get(getType(node.getType())));
+    if (emptyInstanceFactory.containsEmptyInstanceFor(node.getType())) {
+      return new LeafNode<>(
+          node.getType(), () -> emptyInstanceFactory.getEmptyInstanceFor(node.getType()));
     }
     if (visitedTypes.contains(node.getType())) {
       return new LeafNode<>(node.getType(), () -> null);
@@ -70,13 +69,5 @@ class GraphCleaner<R> {
         .map(n -> visitNodeAndFixCycle(new HashSet<>(visitedTypes), n))
         .forEach(newNode::addChildNode);
     return newNode;
-  }
-
-  private Type getType(Type type) {
-    if (type instanceof ParameterizedType) {
-      return ((ParameterizedType) type).getRawType();
-    } else {
-      return type;
-    }
   }
 }
